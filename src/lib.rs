@@ -1,6 +1,7 @@
 #![recursion_limit = "1024"]
 use wasm_bindgen::prelude::*;
 use yew::prelude::*;
+use yew::utils::document;
 use yew::web_sys::HtmlElement;
 
 struct Model {
@@ -81,5 +82,9 @@ impl Component for Model {
 
 #[wasm_bindgen(start)]
 pub fn run_app() {
-    App::<Model>::new().mount_to_body();
+    let calculator_element = document()
+        .query_selector("#calculator")
+        .expect("Couldn't find calculator element")
+        .expect("Couldn't unwrap calculator element");
+    App::<Model>::new().mount(calculator_element);
 }
