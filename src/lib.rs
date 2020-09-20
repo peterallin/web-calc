@@ -1,12 +1,18 @@
+#![recursion_limit = "1024"]
 use wasm_bindgen::prelude::*;
 use yew::prelude::*;
+use yew::web_sys::HtmlElement;
 
 struct Model {
     link: ComponentLink<Self>,
     stack: Vec<String>,
+    entry: String,
+    entry_ref: NodeRef,
 }
 enum Msg {
-    Push(String),
+    Drop,
+    Push,
+    SetEntry(String),
 }
 
 impl Model {
@@ -23,12 +29,21 @@ impl Component for Model {
         Self {
             link,
             stack: vec![],
+            entry: "".into(),
+            entry_ref: NodeRef::default(),
         }
     }
 
     fn update(&mut self, message: Self::Message) -> ShouldRender {
         match message {
-            Msg::Push(v) => self.stack.push(v),
+            Msg::Drop => {
+                let _ = self.stack.pop();
+            }
+            Msg::Push => {
+                self.stack.push(self.entry.clone());
+                self.entry = "".into();
+            }
+            Msg::SetEntry(v) => self.entry = v,
         }
         true
     }
@@ -38,14 +53,28 @@ impl Component for Model {
     }
 
     fn view(&self) -> Html {
+        let drop = "⏏";
         html! {
             <div>
-                <button onclick = self.link.callback(|_| Msg::Push("Value A".to_string()))>{ "Push Value A" }</button>
-                <input type = "text" onkeypress = self.link.batch_callback(|e : KeyboardEvent| if e.key() == "Enter" { vec![Msg::Push("Blah blah".to_string())] } else { vec![] }) />
+                <input type = "text" id="entry"
+                       value = &self.entry
+                       onkeypress = self.link.batch_callback(|e : KeyboardEvent| if e.key() == "Enter" { vec![Msg::Push] } else { vec![] })
+                       oninput = self.link.callback(|x : InputData| Msg::SetEntry(x.value))
+                       ref = self.entry_ref.clone()
+                />
+                <button onclick = self.link.callback(|_| Msg::Drop)>{drop}</button>
                 <ul>
-                    { for self.stack.iter().map(|val| self.render_item(val)) }
+                    { for self.stack.iter().rev().map(|val| self.render_item(val)) }
                 </ul>
             </div>
+        }
+    }
+
+    fn rendered(&mut self, first_render: bool) {
+        if first_render {
+            if let Some(entry) = self.entry_ref.cast::<HtmlElement>() {
+                let _ = entry.focus();
+            }
         }
     }
 }
