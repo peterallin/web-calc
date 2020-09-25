@@ -5,7 +5,7 @@ use yew::utils::document;
 use yew::web_sys::HtmlElement;
 
 mod calculator;
-use calculator::Calculator;
+use calculator::{Calculator, StackValue};
 
 struct Model {
     link: ComponentLink<Self>,
@@ -20,8 +20,8 @@ enum Msg {
 }
 
 impl Model {
-    fn render_item(&self, value: &str) -> Html {
-        html! { <li>{ value }</li> }
+    fn render_stack_value(&self, value: &StackValue) -> Html {
+        html! { <li>{ value.as_string() }</li> }
     }
 }
 
@@ -44,8 +44,11 @@ impl Component for Model {
                 let _ = self.calculator.drop();
             }
             Msg::Push => {
-                self.calculator.push(self.entry.clone());
-                self.entry = "".into();
+                // TODO: Show parse errors in UI?
+                if let Ok(value) = self.entry.parse() {
+                    self.calculator.push(value);
+                    self.entry = "".into();
+                }
             }
             Msg::SetEntry(v) => self.entry = v,
         }
@@ -68,7 +71,7 @@ impl Component for Model {
                 />
                 <button onclick = self.link.callback(|_| Msg::Drop)>{drop}</button>
                 <ul>
-                    { for self.calculator.stack_iter().map(|val| self.render_item(val)) }
+                    { for self.calculator.stack_iter().map(|val| self.render_stack_value(val)) }
                 </ul>
             </div>
         }
