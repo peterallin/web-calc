@@ -4,9 +4,12 @@ use yew::prelude::*;
 use yew::utils::document;
 use yew::web_sys::HtmlElement;
 
+mod calculator;
+use calculator::Calculator;
+
 struct Model {
     link: ComponentLink<Self>,
-    stack: Vec<String>,
+    calculator: Calculator,
     entry: String,
     entry_ref: NodeRef,
 }
@@ -29,7 +32,7 @@ impl Component for Model {
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
         Self {
             link,
-            stack: vec![],
+            calculator: Calculator::new(),
             entry: "".into(),
             entry_ref: NodeRef::default(),
         }
@@ -38,10 +41,10 @@ impl Component for Model {
     fn update(&mut self, message: Self::Message) -> ShouldRender {
         match message {
             Msg::Drop => {
-                let _ = self.stack.pop();
+                let _ = self.calculator.drop();
             }
             Msg::Push => {
-                self.stack.push(self.entry.clone());
+                self.calculator.push(self.entry.clone());
                 self.entry = "".into();
             }
             Msg::SetEntry(v) => self.entry = v,
@@ -65,7 +68,7 @@ impl Component for Model {
                 />
                 <button onclick = self.link.callback(|_| Msg::Drop)>{drop}</button>
                 <ul>
-                    { for self.stack.iter().rev().map(|val| self.render_item(val)) }
+                    { for self.calculator.stack_iter().map(|val| self.render_item(val)) }
                 </ul>
             </div>
         }
