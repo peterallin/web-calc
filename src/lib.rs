@@ -1,4 +1,5 @@
 #![recursion_limit = "1024"]
+use lazy_static::lazy_static;
 use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 use yew::utils::document;
@@ -13,15 +14,42 @@ struct Model {
     entry: String,
     entry_ref: NodeRef,
 }
+#[derive(Debug, Clone)]
 enum Msg {
     Drop,
     Push,
+    Add,
     SetEntry(String),
+}
+
+lazy_static! {
+    static ref OPERATORS: std::collections::HashMap<String, Msg> = vec![
+        ("+".to_string(), Msg::Add),
+        ("Enter".to_string(), Msg::Push)
+    ]
+    .into_iter()
+    .collect();
 }
 
 impl Model {
     fn render_stack_value(&self, value: &StackValue) -> Html {
         html! { <li>{ value.as_string() }</li> }
+    }
+}
+
+fn entry_onkeypress(e: KeyboardEvent) -> Vec<Msg> {
+    if let Some(op) = OPERATORS.get(&e.key()).cloned() {
+        vec![Msg::Push, op]
+    } else {
+        vec![]
+    }
+}
+
+fn entry_oninput(input: InputData) -> Msg {
+    if OPERATORS.get(&input.value).is_none() {
+        Msg::SetEntry(input.value)
+    } else {
+        Msg::SetEntry("".to_string())
     }
 }
 
@@ -50,6 +78,10 @@ impl Component for Model {
                     self.entry = "".into();
                 }
             }
+            Msg::Add => {
+                self.calculator.add();
+                self.entry = "".into();
+            }
             Msg::SetEntry(v) => self.entry = v,
         }
         true
@@ -61,15 +93,17 @@ impl Component for Model {
 
     fn view(&self) -> Html {
         let drop = "⏏";
+        let plus = "+";
         html! {
             <div>
                 <input type = "text" id="entry"
                        value = &self.entry
-                       onkeypress = self.link.batch_callback(|e : KeyboardEvent| if e.key() == "Enter" { vec![Msg::Push] } else { vec![] })
-                       oninput = self.link.callback(|x : InputData| Msg::SetEntry(x.value))
+                       onkeypress = self.link.batch_callback(entry_onkeypress)
+                       oninput = self.link.callback(entry_oninput)
                        ref = self.entry_ref.clone()
                 />
                 <button onclick = self.link.callback(|_| Msg::Drop)>{drop}</button>
+                <button onclick = self.link.callback(|_| Msg::Add)>{plus}</button>
                 <ul>
                     { for self.calculator.stack_iter().map(|val| self.render_stack_value(val)) }
                 </ul>
