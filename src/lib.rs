@@ -18,17 +18,14 @@ struct Model {
 enum Msg {
     Drop,
     Push,
+    ImpliedPush,
     Add,
     SetEntry(String),
 }
 
 lazy_static! {
-    static ref OPERATORS: std::collections::HashMap<String, Msg> = vec![
-        ("+".to_string(), Msg::Add),
-        ("Enter".to_string(), Msg::Push)
-    ]
-    .into_iter()
-    .collect();
+    static ref OPERATORS: std::collections::HashMap<String, Msg> =
+        vec![("+".to_string(), Msg::Add),].into_iter().collect();
 }
 
 impl Model {
@@ -39,7 +36,9 @@ impl Model {
 
 fn entry_onkeypress(e: KeyboardEvent) -> Vec<Msg> {
     if let Some(op) = OPERATORS.get(&e.key()).cloned() {
-        vec![Msg::Push, op]
+        vec![Msg::ImpliedPush, op]
+    } else if e.key() == "Enter" {
+        vec![Msg::Push]
     } else {
         vec![]
     }
@@ -50,6 +49,16 @@ fn entry_oninput(input: InputData) -> Msg {
         Msg::SetEntry(input.value)
     } else {
         Msg::SetEntry("".to_string())
+    }
+}
+
+impl Model {
+    fn push(&mut self) {
+        // TODO: Show parse errors in UI?
+        if let Ok(value) = self.entry.parse() {
+            self.calculator.push(value);
+            self.entry = "".into();
+        }
     }
 }
 
@@ -72,11 +81,14 @@ impl Component for Model {
                 let _ = self.calculator.drop();
             }
             Msg::Push => {
-                // TODO: Show parse errors in UI?
-                if let Ok(value) = self.entry.parse() {
-                    self.calculator.push(value);
-                    self.entry = "".into();
+                if self.entry == "" {
+                    self.calculator.dup();
+                } else {
+                    self.push();
                 }
+            }
+            Msg::ImpliedPush => {
+                self.push();
             }
             Msg::Add => {
                 self.calculator.add();

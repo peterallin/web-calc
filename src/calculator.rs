@@ -1,4 +1,4 @@
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum StackValue {
     Number(f64),
 }
@@ -27,6 +27,12 @@ impl Calculator {
 
     pub fn drop(&mut self) {
         self.stack.pop();
+    }
+
+    pub fn dup(&mut self) {
+        if let Some(last) = self.stack.last().cloned() {
+            self.stack.push(last);
+        }
     }
 
     pub fn add(&mut self) {
@@ -126,5 +132,23 @@ mod tests {
                 StackValue::Number(x) => assert_approx_eq!(777.0 + 100.0 + 123.0, x),
             }
         }
+    }
+
+    #[test]
+    fn dup_empty_stack() {
+        let mut calc = Calculator::new();
+        calc.dup();
+        assert_eq!(calc.stack_iter().count(), 0)
+    }
+
+    #[test]
+    fn dup_one_thing_on_stack() {
+        let mut calc = Calculator::new();
+        calc.push(42.0);
+        calc.dup();
+        let mut iter = calc.stack_iter();
+        assert_eq!(Some(&StackValue::Number(42.0)), iter.next());
+        assert_eq!(Some(&StackValue::Number(42.0)), iter.next());
+        assert_eq!(None, iter.next());
     }
 }
